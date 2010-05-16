@@ -407,7 +407,7 @@ class acp_forums
 						$exclude_forums[] = $row['forum_id'];
 					}
 
-					$parents_list = make_forum_select($forum_data['parent_id'], $exclude_forums, false, false, false);
+					$parents_list = make_forum_select($forum_data['parent_id'], $exclude_forums, true, false, false);
 
 					$forum_data['forum_password_confirm'] = $forum_data['forum_password'];
 				}
@@ -416,7 +416,7 @@ class acp_forums
 					$this->page_title = 'CREATE_FORUM';
 
 					$forum_id = $this->parent_id;
-					$parents_list = make_forum_select($this->parent_id, false, false, false, false);
+					$parents_list = make_forum_select($this->parent_id, false, true, false, false);
 
 					// Fill forum data with default values
 					if (!$update)
@@ -1705,6 +1705,9 @@ class acp_forums
 					)
 				);
 
+				// Amount of rows we select and delete in one iteration.
+				$batch_size = 500;
+
 				foreach ($tables_ary as $field => $tables)
 				{
 					$start = 0;
@@ -1714,7 +1717,7 @@ class acp_forums
 						$sql = "SELECT $field
 							FROM " . POSTS_TABLE . '
 							WHERE forum_id = ' . $forum_id;
-						$result = $db->sql_query_limit($sql, 500, $start);
+						$result = $db->sql_query_limit($sql, $batch_size, $start);
 
 						$ids = array();
 						while ($row = $db->sql_fetchrow($result))
@@ -1733,7 +1736,7 @@ class acp_forums
 							}
 						}
 					}
-					while ($row);
+					while (sizeof($ids) == $batch_size);
 				}
 				unset($ids);
 

@@ -114,7 +114,7 @@ function request_var($var_name, $default, $multibyte = false, $cookie = false)
 					{
 						$_v = null;
 					}
-					set_var($_k, $_k, $sub_key_type);
+					set_var($_k, $_k, $sub_key_type, $multibyte);
 					set_var($var[$k][$_k], $_v, $sub_type, $multibyte);
 				}
 			}
@@ -175,11 +175,8 @@ function set_config_count($config_name, $increment, $is_dynamic = false)
 	switch ($db->sql_layer)
 	{
 		case 'firebird':
-			$sql_update = 'CAST(CAST(config_value as integer) + ' . (int) $increment . ' as VARCHAR(255))';
-		break;
-
 		case 'postgres':
-			$sql_update = 'int4(config_value) + ' . (int) $increment;
+			$sql_update = 'CAST(CAST(config_value as DECIMAL(255, 0)) + ' . (int) $increment . ' as VARCHAR(255))';
 		break;
 
 		// MySQL, SQlite, mssql, mssql_odbc, oracle
@@ -2139,8 +2136,8 @@ function append_sid($url, $params = false, $is_amp = true, $session_id = false)
 {
 	global $_SID, $_EXTRA_URL, $phpbb_hook;
 
-	// Developers using the hook function need to globalise the $_SID and $_EXTRA_URL on their own and also handle it appropiatly.
-	// They could mimick most of what is within this function
+	// Developers using the hook function need to globalise the $_SID and $_EXTRA_URL on their own and also handle it appropriately.
+	// They could mimic most of what is within this function
 	if (!empty($phpbb_hook) && $phpbb_hook->call_hook(__FUNCTION__, $url, $params, $is_amp, $session_id))
 	{
 		if ($phpbb_hook->hook_return(__FUNCTION__))
@@ -2346,6 +2343,7 @@ function redirect($url, $return = false, $disable_cd_check = false)
 			if (!file_exists($pathinfo['dirname']))
 			{
 				// fallback to "last known user page"
+				// at least this way we know the user does not leave the phpBB root
 				$url = generate_board_url() . '/' . $user->page['page'];
 				$failover_flag = true;
 			}
@@ -3408,13 +3406,14 @@ function phpbb_checkdnsrr($host, $type = '')
 {
 	$type = (!$type) ? 'MX' : $type;
 
-	if (DIRECTORY_SEPARATOR == '\\')
+	// Call checkdnsrr() if available. This is also the case on Windows with PHP 5.3 or later.
+	if (function_exists('checkdnsrr'))
 	{
-		if (!function_exists('exec'))
-		{
-			return NULL;
-		}
-
+		// The dot indicates to search the DNS root (helps those having DNS prefixes on the same domain)
+		return checkdnsrr($host . '.', $type);
+	}
+	else if (DIRECTORY_SEPARATOR == '\\' && function_exists('exec'))
+	{
 		// @exec('nslookup -retry=1 -timout=1 -type=' . escapeshellarg($type) . ' ' . escapeshellarg($host), $output);
 		@exec('nslookup -type=' . escapeshellarg($type) . ' ' . escapeshellarg($host) . '.', $output);
 
@@ -3439,11 +3438,6 @@ function phpbb_checkdnsrr($host, $type = '')
 		}
 
 		return false;
-	}
-	else if (function_exists('checkdnsrr'))
-	{
-		// The dot indicates to search the DNS root (helps those having DNS prefixes on the same domain)
-		return (checkdnsrr($host . '.', $type)) ? true : false;
 	}
 
 	return NULL;
@@ -4256,7 +4250,7 @@ function page_header($page_title = '', $display_online_list = true, $item_id = 0
 		'S_TOPIC_ID'			=> $topic_id,
 
 		'S_LOGIN_ACTION'		=> ((!defined('ADMIN_START')) ? append_sid("{$phpbb_root_path}ucp.$phpEx", 'mode=login') : append_sid("index.$phpEx", false, true, $user->session_id)),
-		'S_LOGIN_REDIRECT'		=> build_hidden_fields(array('redirect' => str_replace('&amp;', '&', build_url()))),
+		'S_LOGIN_REDIRECT'		=> build_hidden_fields(array('redirect' => build_url())),
 
 		'S_ENABLE_FEEDS'			=> ($config['feed_enable']) ? true : false,
 		'S_ENABLE_FEEDS_OVERALL'	=> ($config['feed_overall']) ? true : false,

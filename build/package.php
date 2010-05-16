@@ -15,7 +15,7 @@
 // If RC8 drops remove the install/data directory
 //$versions = array('3.0.2', '3.0.3-RC1', '3.0.3', '3.0.4-RC1', '3.0.4', '3.0.5-RC1', '3.0.5', '3.0.6-RC1', '3.0.6-RC2', '3.0.6-RC3');
 //$versions = array('3.0.2', '3.0.3', '3.0.4', '3.0.5', '3.0.6', '3.0.7-RC1', '3.0.7');
-$versions = array('3.0.2', '3.0.3', '3.0.4', '3.0.5', '3.0.6', '3.0.7-RC1', '3.0.7-RC2', '3.0.7');
+$versions = array('3.0.2', '3.0.3', '3.0.4', '3.0.5', '3.0.6', '3.0.7-RC1', '3.0.7-RC2', '3.0.7', '3.0.7-PL1');
 $verbose = false;
 
 require('build_helper.php');
@@ -517,6 +517,14 @@ foreach ($compress_programs as $extension => $compress_command)
 	// Build MD5 Sum
 	$package->run_command('md5sum ./release_files/' . $package->get('release_filename') . '.' . $extension . ' > ./release_files/' . $package->get('release_filename') . '.' . $extension . '.md5');
 }
+
+// Microsoft Web PI packaging
+$package->begin_status('Packaging phpBB for Microsoft WebPI');
+$file = './release_files/' . $package->get('release_filename') . '.webpi.zip';
+$package->run_command("rm -v $file");
+$package->run_command('cp -p ./release_files/' . $package->get('release_filename') . ".zip $file");
+$package->run_command('cd ./../webpi && ' . $compress_programs['zip'] . " ./../new_version/$file *");
+$package->run_command("md5sum $file  > $file.md5");
 
 // verify results
 chdir($package->locations['root']);

@@ -83,7 +83,7 @@ class session
 		$query_string = trim(implode('&', $use_args));
 
 		// basenamed page name (for example: index.php)
-		$page_name = basename($script_name);
+		$page_name = (substr($script_name, -1, 1) == '/') ? '' : basename($script_name);
 		$page_name = urlencode(htmlspecialchars($page_name));
 
 		// current directory within the phpBB root (for example: adm)
@@ -608,6 +608,12 @@ class session
 		}
 		else
 		{
+			// Bot user, if they have a SID in the Request URI we need to get rid of it
+			// otherwise they'll index this page with the SID, duplicate content oh my!
+			if (isset($_GET['sid']))
+			{
+				redirect(build_url(array('sid')));
+			}
 			$this->data['session_last_visit'] = $this->time_now;
 		}
 
@@ -977,7 +983,7 @@ class session
 			}
 
 			// only called from CRON; should be a safe workaround until the infrastructure gets going
-			if (!class_exists('captcha_factory'))
+			if (!class_exists('phpbb_captcha_factory'))
 			{
 				include($phpbb_root_path . "includes/captcha/captcha_factory." . $phpEx);
 			}
