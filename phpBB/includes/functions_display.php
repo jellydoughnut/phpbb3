@@ -968,6 +968,7 @@ function display_user_activity(&$userdata)
 
 	$forum_ary = array_unique($forum_ary);
 	$forum_sql = (sizeof($forum_ary)) ? 'AND ' . $db->sql_in_set('forum_id', $forum_ary, true) : '';
+	$approved_sql = ($auth->acl_getf_global('m_approve')) ? '' : ' AND post_approved = 1';
 
 	// Obtain active forum
 	$sql = 'SELECT forum_id, COUNT(post_id) AS num_posts
@@ -975,6 +976,7 @@ function display_user_activity(&$userdata)
 		WHERE poster_id = ' . $userdata['user_id'] . "
 			AND post_postcount = 1
 			$forum_sql
+			$approved_sql
 		GROUP BY forum_id
 		ORDER BY num_posts DESC";
 	$result = $db->sql_query_limit($sql, 1);
@@ -997,6 +999,7 @@ function display_user_activity(&$userdata)
 		WHERE poster_id = ' . $userdata['user_id'] . "
 			AND post_postcount = 1
 			$forum_sql
+			$approved_sql
 		GROUP BY topic_id
 		ORDER BY num_posts DESC";
 	$result = $db->sql_query_limit($sql, 1);
