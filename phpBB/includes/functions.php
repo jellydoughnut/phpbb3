@@ -4419,7 +4419,7 @@ function page_footer($run_cron = true)
 	{
 		$cron_type = '';
 
-		if ($time_now - $config['queue_interval'] > $config['last_queue_run'] && !defined('IN_ADMIN') && file_exists($phpbb_root_path . 'cache/queue.' . $phpEx))
+		if ($time_now - $config['queue_interval'] > $config['last_queue_run'] && !defined('IN_ADMIN') && file_exists($cache->cache_dir . '/queue.' . $phpEx))
 		{
 			// Process email queue
 			$cron_type = 'queue';

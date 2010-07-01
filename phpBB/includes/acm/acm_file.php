@@ -36,7 +36,15 @@ class acm
 	function acm()
 	{
 		global $phpbb_root_path;
-		$this->cache_dir = $phpbb_root_path . 'cache/';
+
+		if (defined('PHPBB_CACHE_DIR'))
+		{
+			$this->cache_dir = $phpbb_root_path . PHPBB_CACHE_DIR;
+		}
+		else
+		{
+			$this->cache_dir = $phpbb_root_path . 'cache/';
+		}
 	}
 
 	/**

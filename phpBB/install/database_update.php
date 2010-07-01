@@ -1687,6 +1687,11 @@ function change_database_data(&$no_updates, $version)
 
 			$no_updates = false;
 		break;
+
+		// Update this with the late version in the 3.0.x line
+		case '3.0.8':
+			set_config('store_dir', 'store/');
+		break;
 	}
 }
 

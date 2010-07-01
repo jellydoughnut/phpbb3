@@ -74,7 +74,7 @@ switch ($cron_type)
 {
 	case 'queue':
 
-		if (time() - $config['queue_interval'] <= $config['last_queue_run'] || !file_exists($phpbb_root_path . 'cache/queue.' . $phpEx))
+		if (time() - $config['queue_interval'] <= $config['last_queue_run'] || !file_exists($cache->cache_dir . 'queue.' . $phpEx))
 		{
 			break;
 		}
