@@ -92,7 +92,7 @@ $lang = array_merge($lang, array(
 	'ACP_FORUM_ROLES'				=> 'Forum roles',
 
 	'ACP_GENERAL_CONFIGURATION'		=> 'General configuration',
-	'ACP_GENERAL_TASKS'				=> 'General tasks',
+	'ACP_GENERAL_TASKS'				=> 'General',
 	'ACP_GLOBAL_MODERATORS'			=> 'Global moderators',
 	'ACP_GLOBAL_PERMISSIONS'		=> 'Global permissions',
 	'ACP_GROUPS'					=> 'Groups',
@@ -186,7 +186,7 @@ $lang = array_merge($lang, array(
 	'ACP_USER_PROFILE'				=> 'Profile',
 	'ACP_USER_RANK'					=> 'Rank',
 	'ACP_USER_ROLES'				=> 'User roles',
-	'ACP_USER_SECURITY'				=> 'User security',
+	'ACP_USER_SECURITY'				=> 'Banning',
 	'ACP_USER_SIG'					=> 'Signature',
 	'ACP_USER_WARNINGS'				=> 'Warnings',
 
