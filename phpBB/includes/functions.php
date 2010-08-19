@@ -2678,6 +2678,8 @@ function add_form_key($form_name)
 	$template->assign_vars(array(
 		'S_FORM_TOKEN'	=> $s_fields,
 	));
+
+	return $s_fields;
 }
 
 /**
@@ -2761,34 +2763,19 @@ function confirm_box($check, $title = '', $hidden = '', $html_body = 'confirm_bo
 	if ($check && $confirm)
 	{
 		$user_id = request_var('confirm_uid', 0);
-		$session_id = request_var('sess', '');
-		$confirm_key = request_var('confirm_key', '');
 
-		if ($user_id != $user->data['user_id'] || $session_id != $user->session_id || !$confirm_key || !$user->data['user_last_confirm_key'] || $confirm_key != $user->data['user_last_confirm_key'])
-		{
-			return false;
-		}
-
-		// Reset user_last_confirm_key
-		$sql = 'UPDATE ' . USERS_TABLE . " SET user_last_confirm_key = ''
-			WHERE user_id = " . $user->data['user_id'];
-		$db->sql_query($sql);
-
-		return true;
+		return (check_form_key('confirm') && $user->data['user_id'] == $user_id);
 	}
 	else if ($check)
 	{
 		return false;
 	}
 
-	$s_hidden_fields = build_hidden_fields(array(
-		'confirm_uid'	=> $user->data['user_id'],
-		'sess'			=> $user->session_id,
-		'sid'			=> $user->session_id,
-	));
+	$s_hidden_fields = add_form_key('confirm');
 
-	// generate activation key
-	$confirm_key = gen_rand_string(10);
+	$s_hidden_fields .= build_hidden_fields(array(
+		'confirm_uid'	=> $user->data['user_id'],
+	));
 
 	if (defined('IN_ADMIN') && isset($user->data['session_admin']) && $user->data['session_admin'])
 	{
@@ -2813,7 +2800,6 @@ function confirm_box($check, $title = '', $hidden = '', $html_body = 'confirm_bo
 	// re-add sid / transform & to &amp; for user->page (user->page is always using &)
 	$use_page = ($u_action) ? $phpbb_root_path . $u_action : $phpbb_root_path . str_replace('&', '&amp;', $user->page['page']);
 	$u_action = reapply_sid($use_page);
-	$u_action .= ((strpos($u_action, '?') === false) ? '?' : '&amp;') . 'confirm_key=' . $confirm_key;
 
 	$template->assign_vars(array(
 		'MESSAGE_TITLE'		=> (!isset($user->lang[$title])) ? $user->lang['CONFIRM'] : $user->lang[$title],
@@ -2823,10 +2809,6 @@ function confirm_box($check, $title = '', $hidden = '', $html_body = 'confirm_bo
 		'S_CONFIRM_ACTION'	=> $u_action,
 		'S_HIDDEN_FIELDS'	=> $hidden . $s_hidden_fields)
 	);
-
-	$sql = 'UPDATE ' . USERS_TABLE . " SET user_last_confirm_key = '" . $db->sql_escape($confirm_key) . "'
-		WHERE user_id = " . $user->data['user_id'];
-	$db->sql_query($sql);
 
 	if (defined('IN_ADMIN') && isset($user->data['session_admin']) && $user->data['session_admin'])
 	{
