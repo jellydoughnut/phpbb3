@@ -701,9 +701,9 @@ if (!empty($topic_data['poll_start']))
 		// Cookie based guest tracking ... I don't like this but hum ho
 		// it's oft requested. This relies on "nice" users who don't feel
 		// the need to delete cookies to mess with results.
-		if (isset($_COOKIE[$config['cookie_name'] . '_poll_' . $topic_id]))
+		if ($request->is_set($config['cookie_name'] . '_poll_' . $topic_id, phpbb_request_interface::COOKIE))
 		{
-			$cur_voted_id = explode(',', $_COOKIE[$config['cookie_name'] . '_poll_' . $topic_id]);
+			$cur_voted_id = explode(',', $request->variable($config['cookie_name'] . '_poll_' . $topic_id, '', true, phpbb_request_interface::COOKIE));
 			$cur_voted_id = array_map('intval', $cur_voted_id);
 		}
 	}
@@ -1732,19 +1732,19 @@ if ($s_can_vote || $s_quick_reply)
 // We overwrite $_REQUEST['f'] if there is no forum specified
 // to be able to display the correct online list.
 // One downside is that the user currently viewing this topic/post is not taken into account.
-if (empty($_REQUEST['f']))
+if (!request_var('f', 0))
 {
-	$_REQUEST['f'] = $forum_id;
+	$request->overwrite('f', $forum_id);
 }
 
 // We need to do the same with the topic_id. See #53025.
-if (empty($_REQUEST['t']) && !empty($topic_id))
+if (!request_var('t', 0) && !empty($topic_id))
 {
-	$_REQUEST['t'] = $topic_id;
+	$request->overwrite('t', $topic_id);
 }
 
 // Output the page
-page_header($user->lang['VIEW_TOPIC'] . ' - ' . $topic_data['topic_title'], true, $forum_id);
+page_header($topic_data['topic_title'] . ($start ? ' - ' . sprintf($user->lang['PAGE_TITLE_NUMBER'], floor($start / $config['posts_per_page']) + 1) : ''), true, $forum_id);
 
 $template->set_filenames(array(
 	'body' => ($view == 'print') ? 'viewtopic_print.html' : 'viewtopic_body.html')
@@ -1752,5 +1752,3 @@ $template->set_filenames(array(
 make_jumpbox(append_sid("{$phpbb_root_path}viewforum.$phpEx"), $forum_id);
 
 page_footer();
-
-?>

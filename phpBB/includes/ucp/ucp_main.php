@@ -34,6 +34,7 @@ class ucp_main
 	function main($id, $mode)
 	{
 		global $config, $db, $user, $auth, $template, $phpbb_root_path, $phpEx;
+		global $request;
 
 		switch ($mode)
 		{
@@ -287,7 +288,7 @@ class ucp_main
 					}
 					else
 					{
-						$tracking_topics = (isset($_COOKIE[$config['cookie_name'] . '_track'])) ? ((STRIP) ? stripslashes($_COOKIE[$config['cookie_name'] . '_track']) : $_COOKIE[$config['cookie_name'] . '_track']) : '';
+						$tracking_topics = $request->variable($config['cookie_name'] . '_track', '', true, phpbb_request_interface::COOKIE);
 						$tracking_topics = ($tracking_topics) ? tracking_unserialize($tracking_topics) : array();
 					}
 
@@ -435,7 +436,7 @@ class ucp_main
 
 				$edit		= (isset($_REQUEST['edit'])) ? true : false;
 				$submit		= (isset($_POST['submit'])) ? true : false;
-				$draft_id	= ($edit) ? intval($_REQUEST['edit']) : 0;
+				$draft_id	= $request->variable('edit', 0);
 				$delete		= (isset($_POST['delete'])) ? true : false;
 
 				$s_hidden_fields = ($edit) ? '<input type="hidden" name="edit" value="' . $draft_id . '" />' : '';
@@ -831,5 +832,3 @@ class ucp_main
 		}
 	}
 }
-
-?>

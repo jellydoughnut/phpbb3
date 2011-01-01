@@ -248,7 +248,7 @@ function view_message($id, $mode, $folder_id, $msg_id, $folder, $message_row)
 		}
 	}
 
-	if (!isset($_REQUEST['view']) || $_REQUEST['view'] != 'print')
+	if (!isset($_REQUEST['view']) || $request->variable('view', '') != 'print')
 	{
 		// Message History
 		if (message_history($msg_id, $user->data['user_id'], $message_row, $folder))
@@ -319,5 +319,3 @@ function get_user_information($user_id, $user_row)
 
 	return $user_row;
 }
-
-?>

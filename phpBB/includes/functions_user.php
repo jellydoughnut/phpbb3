@@ -1490,7 +1490,7 @@ function validate_username($username, $allowed_username = false)
 	$mbstring = $pcre = false;
 
 	// generic UTF-8 character types supported?
-	if ((version_compare(PHP_VERSION, '5.1.0', '>=') || (version_compare(PHP_VERSION, '5.0.0-dev', '<=') && version_compare(PHP_VERSION, '4.4.0', '>='))) && @preg_match('/\p{L}/u', 'a') !== false)
+	if (pcre_utf8_support())
 	{
 		$pcre = true;
 	}
@@ -1626,7 +1626,7 @@ function validate_password($password)
 	$pcre = $mbstring = false;
 
 	// generic UTF-8 character types supported?
-	if ((version_compare(PHP_VERSION, '5.1.0', '>=') || (version_compare(PHP_VERSION, '5.0.0-dev', '<=') && version_compare(PHP_VERSION, '4.4.0', '>='))) && @preg_match('/\p{L}/u', 'a') !== false)
+	if (pcre_utf8_support())
 	{
 		$upp = '\p{Lu}';
 		$low = '\p{Ll}';
@@ -1774,15 +1774,15 @@ function validate_jabber($jid)
 		return false;
 	}
 
-	$seperator_pos = strpos($jid, '@');
+	$separator_pos = strpos($jid, '@');
 
-	if ($seperator_pos === false)
+	if ($separator_pos === false)
 	{
 		return 'WRONG_DATA';
 	}
 
-	$username = substr($jid, 0, $seperator_pos);
-	$realm = substr($jid, $seperator_pos + 1);
+	$username = substr($jid, 0, $separator_pos);
+	$realm = substr($jid, $separator_pos + 1);
 
 	if (strlen($username) == 0 || strlen($realm) < 3)
 	{
@@ -3601,5 +3601,3 @@ function remove_newly_registered($user_id, $user_data = false)
 
 	return $user_data['group_id'];
 }
-
-?>

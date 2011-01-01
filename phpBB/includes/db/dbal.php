@@ -711,8 +711,9 @@ class dbal
 	function sql_report($mode, $query = '')
 	{
 		global $cache, $starttime, $phpbb_root_path, $user;
+		global $request;
 
-		if (empty($_REQUEST['explain']))
+		if (is_object($request) && !$request->variable('explain', false))
 		{
 			return false;
 		}
@@ -901,5 +902,3 @@ class dbal
 * This variable holds the class name to use later
 */
 $sql_db = (!empty($dbms)) ? 'dbal_' . basename($dbms) : 'dbal';
-
-?>

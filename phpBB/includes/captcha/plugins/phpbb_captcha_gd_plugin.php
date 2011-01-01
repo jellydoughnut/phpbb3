@@ -19,7 +19,7 @@ if (!defined('IN_PHPBB'))
 /**
 * Placeholder for autoload
 */
-if (!class_exists('phpbb_default_captcha'))
+if (!class_exists('phpbb_default_captcha', false))
 {
 	include($phpbb_root_path . 'includes/captcha/plugins/captcha_abstract.' . $phpEx);
 }
@@ -161,5 +161,3 @@ class phpbb_captcha_gd extends phpbb_default_captcha
 	}
 
 }
-
-?>

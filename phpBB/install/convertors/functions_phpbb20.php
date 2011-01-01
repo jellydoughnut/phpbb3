@@ -456,7 +456,7 @@ function phpbb_get_birthday($birthday = '')
 	{
 		$birthday = (int) $birthday;
 
-		if (!$birthday || $birthday == 999999 || ((version_compare(PHP_VERSION, '5.1.0') < 0) && $birthday < 0))
+		if (!$birthday || $birthday == 999999)
 		{
 			return ' 0- 0-   0';
 		}
@@ -1863,5 +1863,3 @@ function phpbb_check_username_collisions()
 	$drop_sql = 'DROP TABLE ' . USERCONV_TABLE;
 	$db->sql_query($drop_sql);
 }
-
-?>
