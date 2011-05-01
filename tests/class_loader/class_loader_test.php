@@ -2,23 +2,30 @@
 /**
 *
 * @package testing
-* @version $Id$
-* @copyright (c) 2008 phpBB Group
+* @copyright (c) 2011 phpBB Group
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License
 *
 */
 
-require_once 'test_framework/framework.php';
-require_once 'class_loader/cache_mock.php';
-
-require_once '../phpBB/includes/class_loader.php';
-
+require_once dirname(__FILE__) . '/../mock/cache.php';
 
 class phpbb_class_loader_test extends PHPUnit_Framework_TestCase
 {
+	public function setUp()
+	{
+		global $class_loader;
+		$class_loader->unregister();
+	}
+
+	public function tearDown()
+	{
+		global $class_loader;
+		$class_loader->register();
+	}
+
 	public function test_resolve_path()
 	{
-		$prefix = 'class_loader/';
+		$prefix = dirname(__FILE__) . '/';
 		$class_loader = new phpbb_class_loader($prefix);
 
 		$prefix .= 'includes/';
@@ -53,10 +60,10 @@ class phpbb_class_loader_test extends PHPUnit_Framework_TestCase
 
 	public function test_resolve_cached()
 	{
-		$cache = new phpbb_cache_mock;
-		$cache->put('class_loader', array('phpbb_a_cached_name' => 'a/cached_name'));
+		$cacheMap = array('class_loader' => array('phpbb_a_cached_name' => 'a/cached_name'));
+		$cache = new phpbb_mock_cache($cacheMap);
 
-		$prefix = 'class_loader/';
+		$prefix = dirname(__FILE__) . '/';
 		$class_loader = new phpbb_class_loader($prefix, '.php', $cache);
 
 		$prefix .= 'includes/';
@@ -72,5 +79,8 @@ class phpbb_class_loader_test extends PHPUnit_Framework_TestCase
 			$class_loader->resolve_path('phpbb_a_cached_name'),
 			'Class in a directory'
 		);
+
+		$cacheMap['class_loader']['phpbb_dir_class_name'] = 'dir/class_name';
+		$cache->check($this, $cacheMap);
 	}
 }

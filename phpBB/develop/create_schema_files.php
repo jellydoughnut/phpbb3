@@ -926,7 +926,7 @@ function get_schema_struct()
 
 	$schema_data['phpbb_bbcodes'] = array(
 		'COLUMNS'		=> array(
-			'bbcode_id'				=> array('TINT:3', 0),
+			'bbcode_id'				=> array('USINT', 0),
 			'bbcode_tag'			=> array('VCHAR:16', ''),
 			'bbcode_helpline'		=> array('VCHAR_UNI', ''),
 			'display_on_posting'	=> array('BOOL', 0),
@@ -1146,7 +1146,8 @@ function get_schema_struct()
 			'group_receive_pm'		=> array('BOOL', 0),
 			'group_message_limit'	=> array('UINT', 0),
 			'group_max_recipients'	=> array('UINT', 0),
-			'group_legend'			=> array('BOOL', 1),
+			'group_legend'			=> array('UINT', 0),
+			'group_teampage'		=> array('UINT', 0),
 		),
 		'PRIMARY_KEY'	=> 'group_id',
 		'KEYS'			=> array(

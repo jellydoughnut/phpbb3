@@ -118,11 +118,6 @@ else
 	define('STRIP', (get_magic_quotes_gpc()) ? true : false);
 }
 
-if (defined('IN_CRON'))
-{
-	$phpbb_root_path = dirname(__FILE__) . DIRECTORY_SEPARATOR;
-}
-
 if (file_exists($phpbb_root_path . 'config.' . $phpEx))
 {
 	require($phpbb_root_path . 'config.' . $phpEx);
@@ -187,8 +182,6 @@ if (!empty($load_extensions) && function_exists('dl'))
 
 // Include files
 require($phpbb_root_path . 'includes/class_loader.' . $phpEx);
-require($phpbb_root_path . 'includes/acm/acm_' . $acm_type . '.' . $phpEx);
-require($phpbb_root_path . 'includes/cache.' . $phpEx);
 require($phpbb_root_path . 'includes/template.' . $phpEx);
 require($phpbb_root_path . 'includes/session.' . $phpEx);
 require($phpbb_root_path . 'includes/auth.' . $phpEx);
@@ -203,12 +196,14 @@ require($phpbb_root_path . 'includes/utf/utf_tools.' . $phpEx);
 // Set PHP error handler to ours
 set_error_handler(defined('PHPBB_MSG_HANDLER') ? PHPBB_MSG_HANDLER : 'msg_handler');
 
-// Cache must be loaded before class loader
-$cache = new cache();
-
 // Setup class loader first
-$class_loader = new phpbb_class_loader($phpbb_root_path, '.' . $phpEx, $cache);
+$class_loader = new phpbb_class_loader($phpbb_root_path, '.' . $phpEx);
 $class_loader->register();
+
+// set up caching
+$cache_factory = new phpbb_cache_factory($acm_type);
+$cache = $cache_factory->get_service();
+$class_loader->set_cache($cache->get_driver());
 
 // Instantiate some basic classes
 $request	= new phpbb_request();
@@ -227,7 +222,9 @@ $db->sql_connect($dbhost, $dbuser, $dbpasswd, $dbname, $dbport, false, defined('
 unset($dbpasswd);
 
 // Grab global variables, re-cache if necessary
-$config = $cache->obtain_config();
+$config = new phpbb_config_db($db, $cache->get_driver(), CONFIG_TABLE);
+set_config(null, null, null, $config);
+set_config_count(null, null, null, $config);
 
 // Add own hook handler
 require($phpbb_root_path . 'includes/hooks/index.' . $phpEx);
@@ -236,4 +233,9 @@ $phpbb_hook = new phpbb_hook(array('exit_handler', 'phpbb_user_session_handler',
 foreach ($cache->obtain_hooks() as $hook)
 {
 	@include($phpbb_root_path . 'includes/hooks/' . $hook . '.' . $phpEx);
+}
+
+if (!$config['use_system_cron'])
+{
+	$cron = new phpbb_cron_manager($phpbb_root_path . 'includes/cron/task', $phpEx, $cache->get_driver());
 }

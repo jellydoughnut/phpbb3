@@ -25,7 +25,7 @@ if (!defined('IN_PHPBB'))
 */
 
 // phpBB Version
-define('PHPBB_VERSION', '3.0.9-dev');
+define('PHPBB_VERSION', '3.1.0-dev');
 
 // QA-related
 // define('PHPBB_QA', 1);
@@ -172,6 +172,9 @@ define('BBCODE_UID_LEN', 8);
 
 // Number of core BBCodes
 define('NUM_CORE_BBCODES', 12);
+
+// BBCode hard limit
+define('BBCODE_LIMIT', 1511);
 
 // Smiley hard limit
 define('SMILEY_LIMIT', 1000);

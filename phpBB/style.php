@@ -57,18 +57,19 @@ if ($id)
 {
 	// Include files
 	require($phpbb_root_path . 'includes/class_loader.' . $phpEx);
-	require($phpbb_root_path . 'includes/acm/acm_' . $acm_type . '.' . $phpEx);
-	require($phpbb_root_path . 'includes/cache.' . $phpEx);
 	require($phpbb_root_path . 'includes/db/' . $dbms . '.' . $phpEx);
 	require($phpbb_root_path . 'includes/constants.' . $phpEx);
 	require($phpbb_root_path . 'includes/functions.' . $phpEx);
 
-	$cache = new cache();
-
-	$class_loader = new phpbb_class_loader($phpbb_root_path, '.' . $phpEx, $cache);
+	$class_loader = new phpbb_class_loader($phpbb_root_path, '.' . $phpEx);
 	$class_loader->register();
 
-	$request	= new phpbb_request();
+	// set up caching
+	$cache_factory = new phpbb_cache_factory($acm_type);
+	$cache = $cache_factory->get_service();
+	$class_loader->set_cache($cache->get_driver());
+
+	$request = new phpbb_request();
 	$db = new $sql_db();
 
 	// make sure request_var uses this request instance
@@ -81,7 +82,10 @@ if ($id)
 	}
 	unset($dbpasswd);
 
-	$config = $cache->obtain_config();
+	$config = new phpbb_config_db($db, $cache->get_driver(), CONFIG_TABLE);
+	set_config(null, null, null, $config);
+	set_config_count(null, null, null, $config);
+
 	$user = false;
 
 	// try to get a session ID from REQUEST array
@@ -308,5 +312,3 @@ if ($id)
 	}
 	$db->sql_close();
 }
-
-exit;

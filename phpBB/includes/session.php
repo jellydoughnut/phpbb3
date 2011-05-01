@@ -279,6 +279,24 @@ class session
 
 		foreach ($ips as $ip)
 		{
+			if (function_exists('phpbb_ip_normalise'))
+			{
+				// Normalise IP address
+				$ip = phpbb_ip_normalise($ip);
+
+				if (empty($ip))
+				{
+					// IP address is invalid.
+					break;
+				}
+
+				// IP address is valid.
+				$this->ip = $ip;
+
+				// Skip legacy code.
+				continue;
+			}
+
 			// check IPv4 first, the IPv6 is hopefully only going to be used very seldomly
 			if (!empty($ip) && !preg_match(get_preg_expression('ipv4'), $ip) && !preg_match(get_preg_expression('ipv6'), $ip))
 			{
@@ -580,6 +598,13 @@ class session
 			$bot = false;
 		}
 
+		// Bot user, if they have a SID in the Request URI we need to get rid of it
+		// otherwise they'll index this page with the SID, duplicate content oh my!
+		if ($bot && isset($_GET['sid']))
+		{
+			redirect(build_url(array('sid')));
+		}
+
 		// If no data was returned one or more of the following occurred:
 		// Key didn't match one in the DB
 		// User does not exist
@@ -616,12 +641,6 @@ class session
 		}
 		else
 		{
-			// Bot user, if they have a SID in the Request URI we need to get rid of it
-			// otherwise they'll index this page with the SID, duplicate content oh my!
-			if (isset($_GET['sid']))
-			{
-				redirect(build_url(array('sid')));
-			}
 			$this->data['session_last_visit'] = $this->time_now;
 		}
 
@@ -1979,6 +1998,7 @@ class user extends session
 
 					$key_found = $num;
 				}
+				break;
 			}
 		}
 

@@ -213,7 +213,7 @@ CREATE INDEX phpbb_banlist_ban_ip ON phpbb_banlist (ban_ip, ban_exclude);
 	Table: 'phpbb_bbcodes'
 */
 CREATE TABLE phpbb_bbcodes (
-	bbcode_id INT2 DEFAULT '0' NOT NULL,
+	bbcode_id INT2 DEFAULT '0' NOT NULL CHECK (bbcode_id >= 0),
 	bbcode_tag varchar(16) DEFAULT '' NOT NULL,
 	bbcode_helpline varchar(255) DEFAULT '' NOT NULL,
 	display_on_posting INT2 DEFAULT '0' NOT NULL CHECK (display_on_posting >= 0),
@@ -459,7 +459,8 @@ CREATE TABLE phpbb_groups (
 	group_receive_pm INT2 DEFAULT '0' NOT NULL CHECK (group_receive_pm >= 0),
 	group_message_limit INT4 DEFAULT '0' NOT NULL CHECK (group_message_limit >= 0),
 	group_max_recipients INT4 DEFAULT '0' NOT NULL CHECK (group_max_recipients >= 0),
-	group_legend INT2 DEFAULT '1' NOT NULL CHECK (group_legend >= 0),
+	group_legend INT4 DEFAULT '0' NOT NULL CHECK (group_legend >= 0),
+	group_teampage INT4 DEFAULT '0' NOT NULL CHECK (group_teampage >= 0),
 	PRIMARY KEY (group_id)
 );
 

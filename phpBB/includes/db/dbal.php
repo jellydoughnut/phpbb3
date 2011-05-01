@@ -242,6 +242,16 @@ class dbal
 	}
 
 	/**
+	* Returns whether results of a query need to be buffered to run a transaction while iterating over them.
+	*
+	* @return bool Whether buffering is required.
+	*/
+	function sql_buffer_nested_transaction()
+	{
+		return false;
+	}
+
+	/**
 	* SQL Transaction
 	* @access private
 	*/
@@ -445,6 +455,28 @@ class dbal
 		}
 
 		return $column_name . ' | ' . (1 << $bit) . (($compare) ? ' ' . $compare : '');
+	}
+
+	/**
+	* Returns SQL string to cast a string expression to an int.
+	*
+	* @param  string $expression An expression evaluating to string
+	* @return string             Expression returning an int
+	*/
+	function cast_expr_to_bigint($expression)
+	{
+		return $expression;
+	}
+
+	/**
+	* Returns SQL string to cast an integer expression to a string.
+	*
+	* @param  string $expression An expression evaluating to int
+	* @return string             Expression returning a string
+	*/
+	function cast_expr_to_string($expression)
+	{
+		return $expression;
 	}
 
 	/**
@@ -768,7 +800,7 @@ class dbal
 							</div>
 						</div>
 						<div id="page-footer">
-							Powered by phpBB &copy; 2000, 2002, 2005, 2007 <a href="http://www.phpbb.com/">phpBB Group</a>
+							Powered by <a href="http://www.phpbb.com/">phpBB</a> &copy; phpBB Group
 						</div>
 					</div>
 					</body>

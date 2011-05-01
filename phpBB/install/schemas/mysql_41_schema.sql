@@ -110,7 +110,7 @@ CREATE TABLE phpbb_banlist (
 
 # Table: 'phpbb_bbcodes'
 CREATE TABLE phpbb_bbcodes (
-	bbcode_id tinyint(3) DEFAULT '0' NOT NULL,
+	bbcode_id smallint(4) UNSIGNED DEFAULT '0' NOT NULL,
 	bbcode_tag varchar(16) DEFAULT '' NOT NULL,
 	bbcode_helpline varchar(255) DEFAULT '' NOT NULL,
 	display_on_posting tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
@@ -316,7 +316,8 @@ CREATE TABLE phpbb_groups (
 	group_receive_pm tinyint(1) UNSIGNED DEFAULT '0' NOT NULL,
 	group_message_limit mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	group_max_recipients mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
-	group_legend tinyint(1) UNSIGNED DEFAULT '1' NOT NULL,
+	group_legend mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
+	group_teampage mediumint(8) UNSIGNED DEFAULT '0' NOT NULL,
 	PRIMARY KEY (group_id),
 	KEY group_legend_name (group_legend, group_name)
 ) CHARACTER SET `utf8` COLLATE `utf8_bin`;

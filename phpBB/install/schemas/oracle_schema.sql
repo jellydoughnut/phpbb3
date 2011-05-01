@@ -254,7 +254,7 @@ END;
 	Table: 'phpbb_bbcodes'
 */
 CREATE TABLE phpbb_bbcodes (
-	bbcode_id number(3) DEFAULT '0' NOT NULL,
+	bbcode_id number(4) DEFAULT '0' NOT NULL,
 	bbcode_tag varchar2(16) DEFAULT '' ,
 	bbcode_helpline varchar2(765) DEFAULT '' ,
 	display_on_posting number(1) DEFAULT '0' NOT NULL,
@@ -605,7 +605,8 @@ CREATE TABLE phpbb_groups (
 	group_receive_pm number(1) DEFAULT '0' NOT NULL,
 	group_message_limit number(8) DEFAULT '0' NOT NULL,
 	group_max_recipients number(8) DEFAULT '0' NOT NULL,
-	group_legend number(1) DEFAULT '1' NOT NULL,
+	group_legend number(8) DEFAULT '0' NOT NULL,
+	group_teampage number(8) DEFAULT '0' NOT NULL,
 	CONSTRAINT pk_phpbb_groups PRIMARY KEY (group_id)
 )
 /

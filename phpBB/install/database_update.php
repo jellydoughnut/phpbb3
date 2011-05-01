@@ -2,13 +2,12 @@
 /**
 *
 * @package install
-* @version $Id$
 * @copyright (c) 2006 phpBB Group
 * @license http://opensource.org/licenses/gpl-license.php GNU Public License
 *
 */
 
-$updates_to_version = '3.0.9-dev';
+$updates_to_version = '3.1.0-dev';
 
 // Enter any version to update from to test updates. The version within the db will not be updated.
 $debug_from_version = false;
@@ -61,8 +60,6 @@ if (!empty($load_extensions) && function_exists('dl'))
 
 // Include files
 require($phpbb_root_path . 'includes/class_loader.' . $phpEx);
-require($phpbb_root_path . 'includes/acm/acm_' . $acm_type . '.' . $phpEx);
-require($phpbb_root_path . 'includes/cache.' . $phpEx);
 require($phpbb_root_path . 'includes/template.' . $phpEx);
 require($phpbb_root_path . 'includes/session.' . $phpEx);
 require($phpbb_root_path . 'includes/auth.' . $phpEx);
@@ -93,10 +90,13 @@ else
 	define('STRIP', (get_magic_quotes_gpc()) ? true : false);
 }
 
-$cache = new cache();
-
-$class_loader = new phpbb_class_loader($phpbb_root_path, '.' . $phpEx, $cache);
+$class_loader = new phpbb_class_loader($phpbb_root_path, '.' . $phpEx);
 $class_loader->register();
+
+// set up caching
+$cache_factory = new phpbb_cache_factory($acm_type);
+$cache = $cache_factory->get_service();
+$class_loader->set_cache($cache->get_driver());
 
 $request = new phpbb_request();
 $user = new user();
@@ -127,8 +127,11 @@ $db->sql_connect($dbhost, $dbuser, $dbpasswd, $dbname, $dbport, false, false);
 // We do not need this any longer, unset for safety purposes
 unset($dbpasswd);
 
-$user->ip = (!empty($_SERVER['REMOTE_ADDR'])) ? htmlspecialchars($_SERVER['REMOTE_ADDR']) : '';
-$user->ip = (stripos($user->ip, '::ffff:') === 0) ? substr($user->ip, 7) : $user->ip;
+$user->ip = '';
+if (!empty($_SERVER['REMOTE_ADDR']))
+{
+	$user->ip = (function_exists('phpbb_ip_normalise')) ? phpbb_ip_normalise($_SERVER['REMOTE_ADDR']) : htmlspecialchars($_SERVER['REMOTE_ADDR']);
+}
 
 $sql = "SELECT config_value
 	FROM " . CONFIG_TABLE . "
@@ -161,17 +164,9 @@ include($phpbb_root_path . 'language/' . $language . '/install.' . $phpEx);
 $inline_update = (request_var('type', 0)) ? true : false;
 
 // To let set_config() calls succeed, we need to make the config array available globally
-$config = array();
-
-$sql = 'SELECT *
-	FROM ' . CONFIG_TABLE;
-$result = $db->sql_query($sql);
-
-while ($row = $db->sql_fetchrow($result))
-{
-	$config[$row['config_name']] = $row['config_value'];
-}
-$db->sql_freeresult($result);
+$config = new phpbb_config_db($db, $cache->get_driver(), CONFIG_TABLE);
+set_config(null, null, null, $config);
+set_config_count(null, null, null, $config);
 
 // We do not include DB Tools here, because we can not be sure the file is up-to-date ;)
 // Instead, this file defines a clean db_tools version (we are also not able to provide a different file, else the database update will not work standalone)
@@ -181,6 +176,69 @@ $database_update_info = database_update_info();
 
 $error_ary = array();
 $errored = false;
+
+$sql = 'SELECT topic_id
+	FROM ' . TOPICS_TABLE . '
+	WHERE forum_id = 0
+		AND topic_type = ' . POST_GLOBAL;
+$result = $db->sql_query_limit($sql, 1);
+$has_global = (int) $db->sql_fetchfield('topic_id');
+$db->sql_freeresult($result);
+$ga_forum_id = request_var('ga_forum_id', 0);
+
+if ($has_global && !$ga_forum_id)
+{
+	?>
+	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+	<html xmlns="http://www.w3.org/1999/xhtml" dir="<?php echo $lang['DIRECTION']; ?>" lang="<?php echo $lang['USER_LANG']; ?>" xml:lang="<?php echo $lang['USER_LANG']; ?>">
+	<head>
+
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="content-language" content="<?php echo $lang['USER_LANG']; ?>" />
+	<meta http-equiv="content-style-type" content="text/css" />
+	<meta http-equiv="imagetoolbar" content="no" />
+
+	<title><?php echo $lang['UPDATING_TO_LATEST_STABLE']; ?></title>
+
+	<link href="../adm/style/admin.css" rel="stylesheet" type="text/css" media="screen" />
+
+	</head>
+
+	<body>
+	<div id="wrap">
+		<div id="page-header">&nbsp;</div>
+
+		<div id="page-body">
+			<div id="acp">
+			<div class="panel">
+				<span class="corners-top"><span></span></span>
+					<div id="content">
+						<div id="main" class="install-body">
+
+		<h1><?php echo $lang['UPDATING_TO_LATEST_STABLE']; ?></h1>
+
+		<br />
+
+		<form action="" method="post" id="select_ga_forum_id">
+			<?php
+				if (isset($lang['SELECT_FORUM_GA']))
+				{
+					// Language string is available:
+					echo $lang['SELECT_FORUM_GA'];
+				}
+				else
+				{
+					echo 'In phpBB 3.1 the global announcements are linked to forums. Select a forum for your current global announcements (can be moved later):';
+				}
+			?>
+			<select id="ga_forum_id" name="ga_forum_id"><?php echo make_forum_select(false, false, true, true) ?></select>
+
+			<input type="submit" name="post" value="<?php echo $lang['SUBMIT']; ?>" class="button1" />
+		</form>
+	<?php
+	_print_footer();
+	exit;
+}
 
 header('Content-type: text/html; charset=UTF-8');
 
@@ -236,7 +294,7 @@ if (empty($config['dbms_version']))
 	set_config('dbms_version', $db->sql_server_info(true));
 }
 
-// Firebird update from Firebord 2.0 to 2.1+ required?
+// Firebird update from Firebird 2.0 to 2.1+ required?
 if ($db->sql_layer == 'firebird')
 {
 	// We do not trust any PHP5 function enabled, we will simply test for a function new in 2.1
@@ -520,7 +578,7 @@ function _print_footer()
 	</div>
 
 	<div id="page-footer">
-		Powered by phpBB &copy; 2000, 2002, 2005, 2007 <a href="http://www.phpbb.com/">phpBB Group</a>
+		Powered by <a href="http://www.phpbb.com/">phpBB</a> &copy; phpBB Group
 	</div>
 </div>
 
@@ -925,6 +983,29 @@ function database_update_info()
 		'3.0.7-PL1'		=> array(),
 		// No changes from 3.0.8-RC1 to 3.0.8
 		'3.0.8-RC1'		=> array(),
+
+		// Changes from 3.0.8 to 3.0.9-RC1
+		'3.0.8'			=> array(
+			'change_columns'	=> array(
+				BBCODES_TABLE	=> array(
+					'bbcode_id'	=> array('USINT', 0),
+				),
+			),
+		),
+
+		// Changes from 3.1.0-dev to 3.1.0-A1
+		'3.1.0-dev'		=> array(
+			'add_columns'		=> array(
+				GROUPS_TABLE		=> array(
+					'group_teampage'	=> array('UINT', 0, 'after' => 'group_legend'),
+				),
+			),
+			'change_columns'	=> array(
+				GROUPS_TABLE		=> array(
+					'group_legend'		=> array('UINT', 0),
+				),
+			),
+		),
 	);
 }
 
@@ -1866,6 +1947,169 @@ function change_database_data(&$no_updates, $version)
 
 		// No changes from 3.0.8-RC1 to 3.0.8
 		case '3.0.8-RC1':
+		break;
+
+		// Changes from 3.0.8 to 3.0.9-RC1
+		case '3.0.8':
+			// Update file extension group names to use language strings, again.
+			$sql = 'SELECT group_id, group_name
+				FROM ' . EXTENSION_GROUPS_TABLE . '
+				WHERE group_name ' . $db->sql_like_expression('EXT_GROUP_' . $db->any_char);
+			$result = $db->sql_query($sql);
+
+			while ($row = $db->sql_fetchrow($result))
+			{
+				$sql_ary = array(
+					'group_name'	=> substr($row['group_name'], 10), // Strip off 'EXT_GROUP_'
+				);
+
+				$sql = 'UPDATE ' . EXTENSION_GROUPS_TABLE . '
+					SET ' . $db->sql_build_array('UPDATE', $sql_ary) . '
+					WHERE group_id = ' . $row['group_id'];
+				_sql($sql, $errored, $error_ary);
+			}
+			$db->sql_freeresult($result);
+
+			$no_updates = false;
+		break;
+
+		// Changes from 3.1.0-dev to 3.1.0-A1
+		case '3.1.0-dev':
+			set_config('use_system_cron', 0);
+
+			$sql = 'UPDATE ' . GROUPS_TABLE . '
+				SET group_teampage = 1
+				WHERE group_type = ' . GROUP_SPECIAL . "
+					AND group_name = 'ADMINISTRATORS'";
+			_sql($sql, $errored, $error_ary);
+
+			$sql = 'UPDATE ' . GROUPS_TABLE . '
+				SET group_teampage = 2
+				WHERE group_type = ' . GROUP_SPECIAL . "
+					AND group_name = 'GLOBAL_MODERATORS'";
+			_sql($sql, $errored, $error_ary);
+
+			set_config('legend_sort_groupname', '0');
+			set_config('teampage_multiple', '1');
+			set_config('teampage_forums', '1');
+
+			$sql = 'SELECT group_id
+				FROM ' . GROUPS_TABLE . '
+				WHERE group_legend = 1
+				ORDER BY group_name ASC';
+			$result = $db->sql_query($sql);
+
+			$next_legend = 1;
+			while ($row = $db->sql_fetchrow($result))
+			{
+				$sql = 'UPDATE ' . GROUPS_TABLE . '
+					SET group_legend = ' . $next_legend . '
+					WHERE group_id = ' . (int) $row['group_id'];
+				_sql($sql, $errored, $error_ary);
+
+				$next_legend++;
+			}
+			$db->sql_freeresult($result);
+			unset($next_legend);
+
+			// Install modules
+			$modules_to_install = array(
+				'position'	=> array(
+					'base'		=> 'groups',
+					'class'		=> 'acp',
+					'title'		=> 'ACP_GROUPS_POSITION',
+					'auth'		=> 'acl_a_group',
+					'cat'		=> 'ACP_GROUPS',
+				),
+				'manage'	=> array(
+					'base'		=> 'attachments',
+					'class'		=> 'acp',
+					'title'		=> 'ACP_MANAGE_ATTACHMENTS',
+					'auth'		=> 'acl_a_attach',
+					'cat'		=> 'ACP_ATTACHMENTS',
+				),
+			);
+
+			_add_modules($modules_to_install);
+
+			// Localise Global Announcements
+			$sql = 'SELECT topic_id, topic_approved, (topic_replies + 1) AS topic_posts, topic_last_post_id, topic_last_post_subject, topic_last_post_time, topic_last_poster_id, topic_last_poster_name, topic_last_poster_colour
+				FROM ' . TOPICS_TABLE . '
+				WHERE forum_id = 0
+					AND topic_type = ' . POST_GLOBAL;
+			$result = $db->sql_query($sql);
+
+			$global_announcements = $update_lastpost_data = array();
+			$update_lastpost_data['forum_last_post_time'] = 0;
+			$update_forum_data = array(
+				'forum_posts'		=> 0,
+				'forum_topics'		=> 0,
+				'forum_topics_real'	=> 0,
+			);
+
+			while ($row = $db->sql_fetchrow($result))
+			{
+				$global_announcements[] = (int) $row['topic_id'];
+
+				$update_forum_data['forum_posts'] += (int) $row['topic_posts'];
+				$update_forum_data['forum_topics_real']++;
+				if ($row['topic_approved'])
+				{
+					$update_forum_data['forum_topics']++;
+				}
+
+				if ($update_lastpost_data['forum_last_post_time'] < $row['topic_last_post_time'])
+				{
+					$update_lastpost_data = array(
+						'forum_last_post_id'		=> (int) $row['topic_last_post_id'],
+						'forum_last_post_subject'	=> $row['topic_last_post_subject'],
+						'forum_last_post_time'		=> (int) $row['topic_last_post_time'],
+						'forum_last_poster_id'		=> (int) $row['topic_last_poster_id'],
+						'forum_last_poster_name'	=> $row['topic_last_poster_name'],
+						'forum_last_poster_colour'	=> $row['topic_last_poster_colour'],
+					);
+				}
+			}
+			$db->sql_freeresult($result);
+
+			if (!empty($global_announcements))
+			{
+				// Update the post/topic-count for the forum and the last-post if needed
+				$ga_forum_id = request_var('ga_forum_id', 0);
+
+				$sql = 'SELECT forum_last_post_time
+					FROM ' . FORUMS_TABLE . '
+					WHERE forum_id = ' . $ga_forum_id;
+				$result = $db->sql_query($sql);
+				$lastpost = (int) $db->sql_fetchfield('forum_last_post_time');
+				$db->sql_freeresult($result);
+
+				$sql_update = 'forum_posts = forum_posts + ' . $update_forum_data['forum_posts'] . ', ';
+				$sql_update .= 'forum_topics_real = forum_topics_real + ' . $update_forum_data['forum_topics_real'] . ', ';
+				$sql_update .= 'forum_topics = forum_topics + ' . $update_forum_data['forum_topics'];
+				if ($lastpost < $update_lastpost_data['forum_last_post_time'])
+				{
+					$sql_update .= ', ' . $db->sql_build_array('UPDATE', $update_lastpost_data);
+				}
+
+				$sql = 'UPDATE ' . FORUMS_TABLE . '
+					SET ' . $sql_update . '
+					WHERE forum_id = ' . $ga_forum_id;
+				_sql($sql, $errored, $error_ary);
+
+				// Update some forum_ids
+				$table_ary = array(TOPICS_TABLE, POSTS_TABLE, LOG_TABLE, DRAFTS_TABLE, TOPICS_TRACK_TABLE);
+				foreach ($table_ary as $table)
+				{
+					$sql = "UPDATE $table
+						SET forum_id = $ga_forum_id
+						WHERE " . $db->sql_in_set('topic_id', $global_announcements);
+					_sql($sql, $errored, $error_ary);
+				}
+				unset($table_ary);
+			}
+
+			$no_updates = false;
 		break;
 	}
 }
