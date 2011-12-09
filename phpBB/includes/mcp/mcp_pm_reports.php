@@ -293,6 +293,7 @@ class mcp_pm_reports
 								'REPORT_TIME'			=> $user->format_date($row['report_time']),
 
 								'RECIPIENTS'			=> implode(', ', $address_list[$row['msg_id']]),
+								'ATTACH_ICON_IMG'		=> ($auth->acl_get('u_download') && $row['message_attachment']) ? $user->img('icon_topic_attach', $user->lang['TOTAL_ATTACHMENTS']) : '',
 							));
 						}
 					}
@@ -310,7 +311,7 @@ class mcp_pm_reports
 					'PAGINATION'			=> generate_pagination($this->u_action . "&amp;st=$sort_days&amp;sk=$sort_key&amp;sd=$sort_dir", $total, $config['topics_per_page'], $start),
 					'PAGE_NUMBER'			=> on_page($total, $config['topics_per_page'], $start),
 					'TOTAL'					=> $total,
-					'TOTAL_REPORTS'			=> ($total == 1) ? $user->lang['LIST_REPORT'] : sprintf($user->lang['LIST_REPORTS'], $total),					
+					'TOTAL_REPORTS'			=> $user->lang('LIST_REPORTS', (int) $total),
 					)
 				);
 

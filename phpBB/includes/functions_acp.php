@@ -106,15 +106,13 @@ function adm_page_footer($copyright_html = true)
 
 		if ($auth->acl_get('a_') && defined('DEBUG_EXTRA'))
 		{
-			if (function_exists('memory_get_usage'))
+			if (function_exists('memory_get_peak_usage'))
 			{
-				if ($memory_usage = memory_get_usage())
+				if ($memory_usage = memory_get_peak_usage())
 				{
-					global $base_memory_usage;
-					$memory_usage -= $base_memory_usage;
 					$memory_usage = get_formatted_filesize($memory_usage);
 
-					$debug_output .= ' | Memory Usage: ' . $memory_usage;
+					$debug_output .= ' | Peak Memory Usage: ' . $memory_usage;
 				}
 			}
 
@@ -126,6 +124,8 @@ function adm_page_footer($copyright_html = true)
 		'DEBUG_OUTPUT'		=> (defined('DEBUG')) ? $debug_output : '',
 		'TRANSLATION_INFO'	=> (!empty($user->lang['TRANSLATION_INFO'])) ? $user->lang['TRANSLATION_INFO'] : '',
 		'S_COPYRIGHT_HTML'	=> $copyright_html,
+		'T_JQUERY_LINK'		=> ($config['load_jquery_cdn'] && !empty($config['load_jquery_url'])) ? $config['load_jquery_url'] : "{$phpbb_root_path}assets/javascript/jquery.js",
+		'S_JQUERY_FALLBACK'	=> ($config['load_jquery_cdn']) ? true : false,
 		'VERSION'			=> $config['version'])
 	);
 
@@ -164,7 +164,7 @@ function build_select($option_ary, $option_default = false)
 /**
 * Build radio fields in acp pages
 */
-function h_radio($name, &$input_ary, $input_default = false, $id = false, $key = false)
+function h_radio($name, $input_ary, $input_default = false, $id = false, $key = false, $separator = '')
 {
 	global $user;
 
@@ -173,7 +173,7 @@ function h_radio($name, &$input_ary, $input_default = false, $id = false, $key =
 	foreach ($input_ary as $value => $title)
 	{
 		$selected = ($input_default !== false && $value == $input_default) ? ' checked="checked"' : '';
-		$html .= '<label><input type="radio" name="' . $name . '"' . (($id && !$id_assigned) ? ' id="' . $id . '"' : '') . ' value="' . $value . '"' . $selected . (($key) ? ' accesskey="' . $key . '"' : '') . ' class="radio" /> ' . $user->lang[$title] . '</label>';
+		$html .= '<label><input type="radio" name="' . $name . '"' . (($id && !$id_assigned) ? ' id="' . $id . '"' : '') . ' value="' . $value . '"' . $selected . (($key) ? ' accesskey="' . $key . '"' : '') . ' class="radio" /> ' . $user->lang[$title] . '</label>' . $separator;
 		$id_assigned = true;
 	}
 
@@ -203,7 +203,7 @@ function build_cfg_template($tpl_type, $key, &$new, $config_key, $vars)
 			$size = (int) $tpl_type[1];
 			$maxlength = (int) $tpl_type[2];
 
-			$tpl = '<input id="' . $key . '" type="' . $tpl_type[0] . '"' . (($size) ? ' size="' . $size . '"' : '') . ' maxlength="' . (($maxlength) ? $maxlength : 255) . '" name="' . $name . '" value="' . $new[$config_key] . '" />';
+			$tpl = '<input id="' . $key . '" type="' . $tpl_type[0] . '"' . (($size) ? ' size="' . $size . '"' : '') . ' maxlength="' . (($maxlength) ? $maxlength : 255) . '" name="' . $name . '" value="' . $new[$config_key] . '"' . (($tpl_type[0] === 'password') ?  ' autocomplete="off"' : '') . ' />';
 		break;
 
 		case 'dimension':
@@ -329,7 +329,7 @@ function validate_config_vars($config_vars, &$cfg_array, &$error)
 		switch ($validator[$type])
 		{
 			case 'string':
-				$length = strlen($cfg_array[$config_name]);
+				$length = utf8_strlen($cfg_array[$config_name]);
 
 				// the column is a VARCHAR
 				$validator[$max] = (isset($validator[$max])) ? min(255, $validator[$max]) : 255;
@@ -527,7 +527,7 @@ function validate_range($value_ary, &$error)
 		{
 			case 'string' :
 				$max = (isset($column[1])) ? min($column[1],$type['max']) : $type['max'];
-				if (strlen($value['value']) > $max)
+				if (utf8_strlen($value['value']) > $max)
 				{
 					$error[] = sprintf($user->lang['SETTING_TOO_LONG'], $user->lang[$value['lang']], $max);
 				}

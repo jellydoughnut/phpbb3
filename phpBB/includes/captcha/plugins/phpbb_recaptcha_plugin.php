@@ -27,16 +27,22 @@ if (!class_exists('phpbb_default_captcha', false))
 */
 class phpbb_recaptcha extends phpbb_default_captcha
 {
-	var $recaptcha_server = 'http://api.recaptcha.net';
-	var $recaptcha_server_secure = 'https://api-secure.recaptcha.net'; // class constants :(
-	var $recaptcha_verify_server = 'api-verify.recaptcha.net';
+	var $recaptcha_server = 'http://www.google.com/recaptcha/api';
+	var $recaptcha_server_secure = 'https://www.google.com/recaptcha/api'; // class constants :(
+
+	// We are opening a socket to port 80 of this host and send
+	// the POST request asking for verification to the path specified here.
+	var $recaptcha_verify_server = 'www.google.com';
+	var $recaptcha_verify_path = '/recaptcha/api/verify';
+
 	var $challenge;
 	var $response;
 
 	// PHP4 Constructor
 	function phpbb_recaptcha()
 	{
-		$this->recaptcha_server = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? $this->recaptcha_server_secure : $this->recaptcha_server;
+		global $request;
+		$this->recaptcha_server = $request->is_secure() ? $this->recaptcha_server_secure : $this->recaptcha_server;
 	}
 
 	function init($type)
@@ -49,9 +55,9 @@ class phpbb_recaptcha extends phpbb_default_captcha
 		$this->response = request_var('recaptcha_response_field', '');
 	}
 
-	function &get_instance()
+	function get_instance()
 	{
-		$instance =& new phpbb_recaptcha();
+		$instance = new phpbb_recaptcha();
 		return $instance;
 	}
 
@@ -296,7 +302,7 @@ class phpbb_recaptcha extends phpbb_default_captcha
 			return $user->lang['RECAPTCHA_INCORRECT'];
 		}
 
-		$response = $this->_recaptcha_http_post($this->recaptcha_verify_server, '/verify',
+		$response = $this->_recaptcha_http_post($this->recaptcha_verify_server, $this->recaptcha_verify_path,
 			array(
 				'privatekey'	=> $config['recaptcha_privkey'],
 				'remoteip'		=> $user->ip,

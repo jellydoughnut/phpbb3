@@ -21,7 +21,7 @@ if (!defined('IN_PHPBB'))
 */
 function generate_smilies($mode, $forum_id)
 {
-	global $auth, $db, $user, $config, $template;
+	global $db, $user, $config, $template;
 	global $phpEx, $phpbb_root_path;
 
 	$start = request_var('start', 0);
@@ -803,7 +803,7 @@ function posting_gen_inline_attachments(&$attachment_data)
 */
 function posting_gen_attachment_entry($attachment_data, &$filename_data, $show_attach_box = true)
 {
-	global $template, $config, $phpbb_root_path, $phpEx, $user, $auth;
+	global $template, $config, $phpbb_root_path, $phpEx, $user;
 
 	// Some default template variables
 	$template->assign_vars(array(
@@ -1005,7 +1005,7 @@ function topic_review($topic_id, $forum_id, $mode = 'topic_review', $cur_post_id
 		$mode = 'post_review';
 	}
 
-	$sql = $db->sql_build_query('SELECT', array(
+	$sql_ary = array(
 		'SELECT'	=> 'u.username, u.user_id, u.user_colour, p.*, z.friend, z.foe',
 
 		'FROM'		=> array(
@@ -1016,14 +1016,15 @@ function topic_review($topic_id, $forum_id, $mode = 'topic_review', $cur_post_id
 		'LEFT_JOIN'	=> array(
 			array(
 				'FROM'	=> array(ZEBRA_TABLE => 'z'),
-				'ON'	=> 'z.user_id = ' . $user->data['user_id'] . ' AND z.zebra_id = p.poster_id'
-			)
+				'ON'	=> 'z.user_id = ' . $user->data['user_id'] . ' AND z.zebra_id = p.poster_id',
+			),
 		),
 
 		'WHERE'		=> $db->sql_in_set('p.post_id', $post_list) . '
-			AND u.user_id = p.poster_id'
-	));
+			AND u.user_id = p.poster_id',
+	);
 
+	$sql = $db->sql_build_query('SELECT', $sql_ary);
 	$result = $db->sql_query($sql);
 
 	$bbcode_bitfield = '';
@@ -1078,7 +1079,7 @@ function topic_review($topic_id, $forum_id, $mode = 'topic_review', $cur_post_id
 			continue;
 		}
 
-		$row =& $rowset[$post_list[$i]];
+		$row = $rowset[$post_list[$i]];
 
 		$poster_id		= $row['user_id'];
 		$post_subject	= $row['post_subject'];
@@ -1855,9 +1856,9 @@ function submit_post($mode, $subject, $username, $topic_type, &$poll, &$data, $u
 
 		case 'edit_topic':
 		case 'edit_first_post':
-			if (isset($poll['poll_options']) && !empty($poll['poll_options']))
+			if (isset($poll['poll_options']))
 			{
-				$poll_start = ($poll['poll_start']) ? $poll['poll_start'] : $current_time;
+				$poll_start = ($poll['poll_start'] || empty($poll['poll_options'])) ? $poll['poll_start'] : $current_time;
 				$poll_length = $poll['poll_length'] * 86400;
 				if ($poll_length < 0)
 				{
@@ -2005,11 +2006,11 @@ function submit_post($mode, $subject, $username, $topic_type, &$poll, &$data, $u
 	}
 
 	// Update Poll Tables
-	if (isset($poll['poll_options']) && !empty($poll['poll_options']))
+	if (isset($poll['poll_options']))
 	{
 		$cur_poll_options = array();
 
-		if ($poll['poll_start'] && $mode == 'edit')
+		if ($mode == 'edit')
 		{
 			$sql = 'SELECT *
 				FROM ' . POLL_OPTIONS_TABLE . '
@@ -2350,16 +2351,11 @@ function submit_post($mode, $subject, $username, $topic_type, &$poll, &$data, $u
 	if ($update_search_index && $data['enable_indexing'])
 	{
 		// Select the search method and do some additional checks to ensure it can actually be utilised
-		$search_type = basename($config['search_type']);
-
-		if (!file_exists($phpbb_root_path . 'includes/search/' . $search_type . '.' . $phpEx))
-		{
-			trigger_error('NO_SUCH_SEARCH_MODULE');
-		}
+		$search_type = $config['search_type'];
 
 		if (!class_exists($search_type))
 		{
-			include("{$phpbb_root_path}includes/search/$search_type.$phpEx");
+			trigger_error('NO_SUCH_SEARCH_MODULE');
 		}
 
 		$error = false;
@@ -2455,6 +2451,108 @@ function submit_post($mode, $subject, $username, $topic_type, &$poll, &$data, $u
 
 	$url = (!$params) ? "{$phpbb_root_path}viewforum.$phpEx" : "{$phpbb_root_path}viewtopic.$phpEx";
 	$url = append_sid($url, 'f=' . $data['forum_id'] . $params) . $add_anchor;
+
+	return $url;
+}
+
+/**
+* Handle topic bumping
+* @param int $forum_id The ID of the forum the topic is being bumped belongs to
+* @param int $topic_id The ID of the topic is being bumping
+* @param array $post_data Passes some topic parameters:
+*				- 'topic_title'
+*				- 'topic_last_post_id'
+*				- 'topic_last_poster_id'
+*				- 'topic_last_post_subject'
+*				- 'topic_last_poster_name'
+*				- 'topic_last_poster_colour'
+* @param int $bump_time The time at which topic was bumped, usually it is a current time as obtained via time().
+* @return string An URL to the bumped topic, example: ./viewtopic.php?forum_id=1&amptopic_id=2&ampp=3#p3
+*/
+function phpbb_bump_topic($forum_id, $topic_id, $post_data, $bump_time = false)
+{
+	global $config, $db, $user, $phpEx, $phpbb_root_path;
+
+	if ($bump_time === false)
+	{
+		$bump_time = time();
+	}
+
+	// Begin bumping
+	$db->sql_transaction('begin');
+
+	// Update the topic's last post post_time
+	$sql = 'UPDATE ' . POSTS_TABLE . "
+		SET post_time = $bump_time
+		WHERE post_id = {$post_data['topic_last_post_id']}
+			AND topic_id = $topic_id";
+	$db->sql_query($sql);
+
+	// Sync the topic's last post time, the rest of the topic's last post data isn't changed
+	$sql = 'UPDATE ' . TOPICS_TABLE . "
+		SET topic_last_post_time = $bump_time,
+			topic_bumped = 1,
+			topic_bumper = " . $user->data['user_id'] . "
+		WHERE topic_id = $topic_id";
+	$db->sql_query($sql);
+
+	// Update the forum's last post info
+	$sql = 'UPDATE ' . FORUMS_TABLE . "
+		SET forum_last_post_id = " . $post_data['topic_last_post_id'] . ",
+			forum_last_poster_id = " . $post_data['topic_last_poster_id'] . ",
+			forum_last_post_subject = '" . $db->sql_escape($post_data['topic_last_post_subject']) . "',
+			forum_last_post_time = $bump_time,
+			forum_last_poster_name = '" . $db->sql_escape($post_data['topic_last_poster_name']) . "',
+			forum_last_poster_colour = '" . $db->sql_escape($post_data['topic_last_poster_colour']) . "'
+		WHERE forum_id = $forum_id";
+	$db->sql_query($sql);
+
+	// Update bumper's time of the last posting to prevent flood
+	$sql = 'UPDATE ' . USERS_TABLE . "
+		SET user_lastpost_time = $bump_time
+		WHERE user_id = " . $user->data['user_id'];
+	$db->sql_query($sql);
+
+	$db->sql_transaction('commit');
+
+	// Mark this topic as posted to
+	markread('post', $forum_id, $topic_id, $bump_time);
+
+	// Mark this topic as read
+	markread('topic', $forum_id, $topic_id, $bump_time);
+
+	// Update forum tracking info
+	if ($config['load_db_lastread'] && $user->data['is_registered'])
+	{
+		$sql = 'SELECT mark_time
+			FROM ' . FORUMS_TRACK_TABLE . '
+			WHERE user_id = ' . $user->data['user_id'] . '
+				AND forum_id = ' . $forum_id;
+		$result = $db->sql_query($sql);
+		$f_mark_time = (int) $db->sql_fetchfield('mark_time');
+		$db->sql_freeresult($result);
+	}
+	else if ($config['load_anon_lastread'] || $user->data['is_registered'])
+	{
+		$f_mark_time = false;
+	}
+
+	if (($config['load_db_lastread'] && $user->data['is_registered']) || $config['load_anon_lastread'] || $user->data['is_registered'])
+	{
+		// Update forum info
+		$sql = 'SELECT forum_last_post_time
+			FROM ' . FORUMS_TABLE . '
+			WHERE forum_id = ' . $forum_id;
+		$result = $db->sql_query($sql);
+		$forum_last_post_time = (int) $db->sql_fetchfield('forum_last_post_time');
+		$db->sql_freeresult($result);
+
+		update_forum_tracking_info($forum_id, $forum_last_post_time, $f_mark_time, false);
+	}
+
+	add_log('mod', $forum_id, $topic_id, 'LOG_BUMP_TOPIC', $post_data['topic_title']);
+
+	$url = append_sid("{$phpbb_root_path}viewtopic.$phpEx", "f=$forum_id&amp;t=$topic_id&amp;p={$post_data['topic_last_post_id']}") . "#p{$post_data['topic_last_post_id']}";
 
 	return $url;
 }

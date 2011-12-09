@@ -93,8 +93,10 @@ $lang = array_merge($lang, array(
 
 	'LAST_ACTIVE'				=> 'Last active',
 	'LESS_THAN'					=> 'Less than',
-	'LIST_USER'					=> '1 user',
-	'LIST_USERS'				=> '%d users',
+	'LIST_USERS'				=> array(
+		1	=> '%d user',
+		2	=> '%d users',
+	),
 	'LOGIN_EXPLAIN_LEADERS'		=> 'The board requires you to be registered and logged in to view the team listing.',
 	'LOGIN_EXPLAIN_MEMBERLIST'	=> 'The board requires you to be registered and logged in to access the memberlist.',
 	'LOGIN_EXPLAIN_SEARCHUSER'	=> 'The board requires you to be registered and logged in to search users.',
@@ -116,7 +118,6 @@ $lang = array_merge($lang, array(
 	'REMOVE_FOE'			=> 'Remove foe',
 	'REMOVE_FRIEND'			=> 'Remove friend',
 
-	'SEARCH_USER_POSTS'		=> 'Search user’s posts',
 	'SELECT_MARKED'			=> 'Select marked',
 	'SELECT_SORT_METHOD'	=> 'Select sort method',
 	'SEND_AIM_MESSAGE'		=> 'Send AIM message',
@@ -137,6 +138,7 @@ $lang = array_merge($lang, array(
 	'USER_LAST_REMINDED'	=> array(
 		0		=> 'No reminder sent at this time',
 		1		=> '%1$d reminder sent<br />» %2$s',
+		2		=> '%1$d reminder sent<br />» %2$s',
 	),
 	'USER_ONLINE'			=> 'Online',
 	'USER_PRESENCE'			=> 'Board presence',
