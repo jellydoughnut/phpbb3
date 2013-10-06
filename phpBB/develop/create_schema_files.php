@@ -20,10 +20,10 @@ if (!is_writable($schema_path))
 
 define('IN_PHPBB', true);
 
-require(dirname(__FILE__) . '/../phpbb/db/schema_data.php');
+require(dirname(__FILE__) . '/../includes/db/schema_data.php');
 require(dirname(__FILE__) . '/../phpbb/db/tools.php');
 
-$dbms_type_map = phpbb_db_tools::get_dbms_type_map();
+$dbms_type_map = phpbb\db\tools::get_dbms_type_map();
 
 // A list of types being unsigned for better reference in some db's
 $unsigned_types = array('UINT', 'UINT:', 'USINT', 'BOOL', 'TIMESTAMP');

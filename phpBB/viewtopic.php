@@ -716,9 +716,9 @@ if (!empty($topic_data['poll_start']))
 		// Cookie based guest tracking ... I don't like this but hum ho
 		// it's oft requested. This relies on "nice" users who don't feel
 		// the need to delete cookies to mess with results.
-		if ($request->is_set($config['cookie_name'] . '_poll_' . $topic_id, phpbb_request_interface::COOKIE))
+		if ($request->is_set($config['cookie_name'] . '_poll_' . $topic_id, \phpbb\request\request_interface::COOKIE))
 		{
-			$cur_voted_id = explode(',', $request->variable($config['cookie_name'] . '_poll_' . $topic_id, '', true, phpbb_request_interface::COOKIE));
+			$cur_voted_id = explode(',', $request->variable($config['cookie_name'] . '_poll_' . $topic_id, '', true, \phpbb\request\request_interface::COOKIE));
 			$cur_voted_id = array_map('intval', $cur_voted_id);
 		}
 	}
@@ -1012,7 +1012,7 @@ while ($row = $db->sql_fetchrow($result))
 		}
 	}
 
-	$rowset[$row['post_id']] = array(
+	$rowset_data = array(
 		'hide_post'			=> (($row['foe'] || $row['post_visibility'] == ITEM_DELETED) && ($view != 'show' || $post_id != $row['post_id'])) ? true : false,
 
 		'post_id'			=> $row['post_id'],
@@ -1046,6 +1046,19 @@ while ($row = $db->sql_fetchrow($result))
 		'friend'			=> $row['friend'],
 		'foe'				=> $row['foe'],
 	);
+
+	/**
+	* Modify the post rowset containing data to be displayed with posts
+	*
+	* @event core.viewtopic_post_rowset_data
+	* @var	array	rowset_data	Array with the rowset data for this post
+	* @var	array	row			Array with original user and post data
+	* @since 3.1-A1
+	*/
+	$vars = array('rowset_data', 'row');
+	extract($phpbb_dispatcher->trigger_event('core.viewtopic_post_rowset_data', compact($vars)));
+
+	$rowset[$row['post_id']] = $rowset_data;
 
 	// Define the global bbcode bitfield, will be used to load bbcodes
 	$bbcode_bitfield = $bbcode_bitfield | base64_decode($row['bbcode_bitfield']);
@@ -1102,8 +1115,8 @@ while ($row = $db->sql_fetchrow($result))
 			*
 			* @event core.viewtopic_cache_guest_data
 			* @var	array	user_cache_data	Array with the user's data
-			* @var	int		poster_id	Poster's user id
-			* @var	array	row			Array with original user and post data
+			* @var	int		poster_id		Poster's user id
+			* @var	array	row				Array with original user and post data
 			* @since 3.1-A1
 			*/
 			$vars = array('user_cache_data', 'poster_id', 'row');
@@ -1168,8 +1181,8 @@ while ($row = $db->sql_fetchrow($result))
 			*
 			* @event core.viewtopic_cache_user_data
 			* @var	array	user_cache_data	Array with the user's data
-			* @var	int		poster_id	Poster's user id
-			* @var	array	row			Array with original user and post data
+			* @var	int		poster_id		Poster's user id
+			* @var	array	row				Array with original user and post data
 			* @since 3.1-A1
 			*/
 			$vars = array('user_cache_data', 'poster_id', 'row');
@@ -1660,10 +1673,10 @@ for ($i = 0, $end = sizeof($post_list); $i < $end; ++$i)
 	* Modify the posts template block
 	*
 	* @event core.viewtopic_modify_post_row
-	* @var	array	row				Array with original post and user data
-	* @var	array	cp_row			Custom profile field data of the poster
+	* @var	array	row					Array with original post and user data
+	* @var	array	cp_row				Custom profile field data of the poster
 	* @var	array	user_poster_data	Poster's data from user cache
-	* @var	array	post_row		Template block array of the post
+	* @var	array	post_row			Template block array of the post
 	* @since 3.1-A1
 	*/
 	$vars = array('row', 'cp_row', 'user_poster_data', 'post_row');
